@@ -105,7 +105,7 @@ const teamAbbreviations = {
 
   await browser.close();
 
-  let fileContent = "team_home,team_away,Win,Loss,Date\n";
+  let fileContent = "team_abbreviation_home,team_abbreviation_away,Win,Loss,Date\n";
 
   matchData.forEach((data) => {
     fileContent += `${data.teamNames.home},${data.teamNames.away},${data.odds.home},${data.odds.away},${data.date}\n`;
