@@ -1,0 +1,16 @@
+{
+  "name": "scraping_script",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "prettier": "^2.8.7",
+    "puppeteer": "^19.8.5"
+  }
+}
