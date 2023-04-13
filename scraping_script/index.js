@@ -54,7 +54,7 @@ const teamAbbreviations = {
 
   console.log(`Fetching succeeded with ${matchIds.length} results`);
 
-  const matchData = await Promise.all(
+  const matchData = (await Promise.all(
     matchIds.map(async (id) => {
       const matchPage = await browser.newPage();
       await matchPage.goto(
@@ -88,22 +88,25 @@ const teamAbbreviations = {
       };
 
       const oddsElements = await matchPage.$$(".oddsValueInner");
+      if (oddsElements.length < 4) return null;
       const odds = {
         home: await matchPage.evaluate(
-          (oddsElements) => oddsElements.textContent,
+          (oddsElements) => oddsElements?.textContent,
           oddsElements[0]
         ),
         away: await matchPage.evaluate(
-          (oddsElements) => oddsElements.textContent,
+          (oddsElements) => oddsElements?.textContent,
           oddsElements[1]
         ),
       };
 
       return { date, teamNames, odds };
     })
-  );
+  )).filter(data => data !== null);
 
   await browser.close();
+
+  console.log(`The amount of valid results is ${matchData.length}. Writing results to output file...`)
 
   let fileContent = "team_abbreviation_home,team_abbreviation_away,Win,Loss,Date\n";
 
