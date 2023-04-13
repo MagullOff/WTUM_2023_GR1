@@ -88,13 +88,16 @@ const teamAbbreviations = {
       };
 
       const oddsElements = await matchPage.$$(".oddsValueInner");
-      if (oddsElements.length < 4) return null;
+      const originalOddsElements = await matchPage.$$(".cellWrapper");
+      if (originalOddsElements.length < 4 || oddsElements.length < 4) return null;
+      const originalOddHome = (await matchPage.evaluate((oddElement) => oddElement?.title, originalOddsElements[0])).split(" » ")[0];
+      const originalOddAway = (await matchPage.evaluate((oddElement) => oddElement?.title, originalOddsElements[1])).split(" » ")[0];
       const odds = {
-        home: await matchPage.evaluate(
+        home: (originalOddHome && originalOddHome !== "") ? originalOddHome : await matchPage.evaluate(
           (oddsElements) => oddsElements?.textContent,
           oddsElements[0]
         ),
-        away: await matchPage.evaluate(
+        away: (originalOddAway && originalOddAway !== "") ? originalOddAway : await matchPage.evaluate(
           (oddsElements) => oddsElements?.textContent,
           oddsElements[1]
         ),
