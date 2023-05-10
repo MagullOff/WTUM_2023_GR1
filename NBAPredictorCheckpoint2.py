@@ -31,12 +31,12 @@ def filter_last_n_years(df, n):
     
     return filtered_df
 
-# data = filter_last_n_years(data, 5)
+data = filter_last_n_years(data, 10)
 
 data.loc[data['wl_home'] == 'L', 'wl_home'] = 0
 data.loc[data['wl_home'] == 'W', 'wl_home'] = 1
 # dopytam sie o to Rafalko, ale te kolumny pokroju ilosc rzutow z pola, ilos prob rzucenia za 3, ilosc rzutow osobistych tylko oglupiaja model i zblizaja mi oddsy za bardzo do 50/50, zostalbym przy formie, ewentualnie rozwinal jej wylicznanie, ktore uwzglednia tez jakosc przeciwnika, do pomyslenia
-data = data.astype({'team_abbreviation_home': 'string', 'team_abbreviation_away': 'string', 'wl_home': 'int32'})#, 'fgm_home' : 'float32', 'fgm_away' : 'float32', 'fg3a_home' : 'float32', 'fg3a_away' : 'float32'})
+data = data.astype({'team_abbreviation_home': 'string', 'team_abbreviation_away': 'string', 'wl_home': 'int32', 'game_date': 'datetime64[D]'})#, 'fgm_home' : 'float32', 'fgm_away' : 'float32', 'fg3a_home' : 'float32', 'fg3a_away' : 'float32'})
 
 #ile wygranych w 5 ostatnich domowych meczach domowej druzyny
 data['last_5_home_games'] = 0
@@ -100,34 +100,33 @@ data = data.dropna()
 test_data = pd.read_csv(test_data_path, usecols=CSV_TEST_DATA_COLUMN_NAMES, header=0)
 test_data = test_data.astype({'Win' : 'float32'})
 test_data = test_data.astype({'Loss' : 'float32'})
+test_data = test_data.astype({'Date' : 'datetime64[D]'})
 
     
-test_start_date = test_data['Date'].min() # uzupelnienie test seta o formy z ostatnich 5 meczow
-data_filtered = data[data['game_date'] > test_start_date]
+# test_start_date = test_data['Date'].min() # uzupelnienie test seta o formy z ostatnich 5 meczow
+# data_filtered = data[data['game_date'] > test_start_date]
 
 home_team_last_5 = [] 
 for index, row in test_data.iterrows():
     home_team = row['team_abbreviation_home']
-    home_games = data_filtered[data_filtered['team_abbreviation_home'] == home_team]
+    home_games = data[data['team_abbreviation_home'] == home_team]
     home_games_last_5 = home_games.tail(5)
     home_team_last_5.append(home_games_last_5['wl_home'].sum())
-  
 test_data['last_5_home_games'] = home_team_last_5
 
 away_team_last_5 = []
 for index, row in test_data.iterrows():
     away_team = row['team_abbreviation_away']
-    away_games = data_filtered[data_filtered['team_abbreviation_away'] == away_team]
+    away_games = data[data['team_abbreviation_away'] == away_team]
     away_games_last_5 = away_games.tail(5)
     away_team_last_5.append(5 - away_games_last_5['wl_home'].sum())
-
-
 test_data['last_5_away_games'] = away_team_last_5
+
 test_data = test_data.astype({'last_5_home_games' : 'int32'})
 test_data = test_data.astype({'last_5_away_games' : 'int32'})
 data = data.drop(['game_date'], axis=1)
 
-train_data = pd.DataFrame(data.sample(frac=0.8, random_state=25))
+train_data = pd.DataFrame(data.sample(frac=0.9, random_state=25))
 
 print(train_data.head())
 
@@ -167,7 +166,7 @@ feature_columns.append(tf.feature_column.numeric_column('last_5_away_games'))
 # feature_columns.append(tf.feature_column.numeric_column('fg3a_home'))
 # feature_columns.append(tf.feature_column.numeric_column('fg3a_away'))
 
-train_data = pd.DataFrame(data.sample(frac=0.8, random_state=25))
+# train_data = pd.DataFrame(data.sample(frac=0.8, random_state=25))
 eval_data = pd.DataFrame(data.drop(train_data.index))
 
 def make_input_fn(data_df, label_df, num_epochs=10, shuffle=True, batch_size=32):
@@ -179,8 +178,11 @@ def make_input_fn(data_df, label_df, num_epochs=10, shuffle=True, batch_size=32)
         return ds
     return input_function
 
-train_input_fn = make_input_fn(train_data, train_data['wl_home'])
-eval_input_fn = make_input_fn(eval_data, eval_data['wl_home'], num_epochs=1, shuffle=False)
+y_train = train_data.pop('wl_home')
+y_eval = eval_data.pop('wl_home')
+
+train_input_fn = make_input_fn(train_data, y_train)
+eval_input_fn = make_input_fn(eval_data, y_eval, num_epochs=1, shuffle=False)
 
 model = tf.estimator.DNNClassifier(
     feature_columns=feature_columns,
